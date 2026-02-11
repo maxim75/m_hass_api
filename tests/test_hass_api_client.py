@@ -92,7 +92,7 @@ class TestGetData:
         """Test successful GET request."""
         mock_get.return_value = mock_response
         result = client.get_data("posts", id=1, limit=10)
-        
+
         mock_get.assert_called_once()
         assert result == {"status": "success", "data": "test"}
         assert mock_get.call_args[1]["timeout"] == 30
@@ -103,7 +103,7 @@ class TestGetData:
         """Test GET request without endpoint."""
         mock_get.return_value = mock_response
         result = client.get_data()
-        
+
         mock_get.assert_called_once()
         call_args = mock_get.call_args
         assert call_args[0][0] == "https://api.example.com"
@@ -113,11 +113,13 @@ class TestGetData:
         assert result == {"status": "success", "data": "test"}
 
     @patch.object(requests.Session, "get")
-    def test_get_data_with_endpoint_leading_slash(self, mock_get, client, mock_response):
+    def test_get_data_with_endpoint_leading_slash(
+        self, mock_get, client, mock_response
+    ):
         """Test GET request handles leading slash in endpoint."""
         mock_get.return_value = mock_response
         client.get_data("/posts")
-        
+
         args, _ = mock_get.call_args
         assert args[0] == "https://api.example.com/posts"
 
@@ -128,7 +130,7 @@ class TestGetData:
         mock_response.status_code = 200
         mock_response.json.return_value = {}
         mock_get.return_value = mock_response
-        
+
         result = client.get_data()
         assert result == {}
 
@@ -141,10 +143,10 @@ class TestGetData:
         http_error.response = mock_response
         mock_response.raise_for_status.side_effect = http_error
         mock_get.return_value = mock_response
-        
+
         with pytest.raises(APIError) as exc_info:
             client.get_data("nonexistent")
-        
+
         assert "Failed to fetch data" in str(exc_info.value)
         assert exc_info.value.status_code == 404
 
@@ -152,10 +154,10 @@ class TestGetData:
     def test_get_data_timeout_error(self, mock_get, client):
         """Test GET request handles timeout errors."""
         mock_get.side_effect = requests.exceptions.Timeout("Request timed out")
-        
+
         with pytest.raises(APIError) as exc_info:
             client.get_data()
-        
+
         assert "Failed to fetch data" in str(exc_info.value)
         assert exc_info.value.status_code is None
 
@@ -163,12 +165,11 @@ class TestGetData:
     def test_get_data_connection_error(self, mock_get, client):
         """Test GET request handles connection errors."""
         mock_get.side_effect = requests.exceptions.ConnectionError("Connection failed")
-        
+
         with pytest.raises(APIError) as exc_info:
             client.get_data()
-        
-        assert "Failed to fetch data" in str(exc_info.value)
 
+        assert "Failed to fetch data" in str(exc_info.value)
 
 
 class TestContextManager:
@@ -180,7 +181,7 @@ class TestContextManager:
         with HassApiClient(base_url="https://api.example.com") as client:
             assert client is not None
             assert client.base_url == "https://api.example.com"
-        
+
         mock_close.assert_called_once()
 
     @patch.object(requests.Session, "close")
@@ -189,7 +190,7 @@ class TestContextManager:
         with pytest.raises(ValueError):
             with HassApiClient(base_url="https://api.example.com") as client:
                 raise ValueError("Test exception")
-        
+
         mock_close.assert_called_once()
 
     def test_close_method(self):
@@ -234,11 +235,13 @@ class TestIntegrationScenarios:
         mock_response.json.return_value = {"data": "value"}
         mock_get.return_value = mock_response
 
-        with HassApiClient(base_url="https://api.example.com", api_key="test-key") as client:
+        with HassApiClient(
+            base_url="https://api.example.com", api_key="test-key"
+        ) as client:
             # Get data
             result1 = client.get_data("endpoint1")
             assert result1 == {"data": "value"}
-            
+
             # Get more data with parameters
             result2 = client.get_data("endpoint2", param1="value1", param2="value2")
             assert result2 == {"data": "value"}
@@ -249,13 +252,13 @@ class TestIntegrationScenarios:
     def test_client_reuse(self, mock_get, mock_response):
         """Test reusing client for multiple requests."""
         mock_get.return_value = mock_response
-        
+
         client = HassApiClient(base_url="https://api.example.com")
-        
+
         result1 = client.get_data("endpoint1")
         result2 = client.get_data("endpoint2")
         result3 = client.get_data("endpoint3")
-        
+
         assert mock_get.call_count == 3
         assert result1 == result2 == result3 == {"status": "success", "data": "test"}
 
@@ -278,7 +281,7 @@ class TestEdgeCases:
         """Test GET request with special characters in endpoint."""
         mock_get.return_value = mock_response
         client.get_data("users/filter?name=John&age=25")
-        
+
         args, _ = mock_get.call_args
         assert "users/filter?name=John&age=25" in args[0]
 
@@ -292,7 +295,7 @@ class TestEdgeCases:
         """Test that verify_ssl parameter is passed to requests."""
         client = HassApiClient(base_url="https://api.example.com", verify_ssl=False)
         mock_get.return_value = mock_response
-        
+
         client.get_data()
-        
+
         assert mock_get.call_args[1]["verify"] is False
