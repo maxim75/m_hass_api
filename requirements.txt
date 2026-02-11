@@ -12,3 +12,5 @@ flake8>=4.0.0
 # Build and deployment
 build>=0.8.0
 twine>=3.0.0
+
+pandas>=2.1.0
