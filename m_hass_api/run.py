@@ -18,16 +18,20 @@ states_df = client.get_states()
 
 print(states_df[states_df.entity_id.str.contains("red")])
 
-print(client.get_state_as_string("sensor.gw2000c_outdoor_temperature"))
-print(client.get_state_as_numeric("sensor.gw2000c_outdoor_temperature") > 30)
 
-print(client.get_state_as_string("sensor.corridor_window_last_seen"))
-print(
-    "df",
-    client.get_state_as_datetime("sensor.corridor_window_last_seen").strftime(
-        "%H:%M:%S"
-    ),
-)
+# Get enity state
+print("sun.sun: ", client.get_state_as_string("sun.sun"))
+print("sensor.stairs_bottom_pir_last_seen: ", client.get_state_as_datetime("sensor.stairs_bottom_pir_last_seen"))
+print("sensor.home_assistant_core_cpu_percent: ", client.get_state_as_numeric("sensor.home_assistant_core_cpu_percent"))
 
-history = client.get_state_history(["sensor.gw2000c_outdoor_temperature"])
-print(history.head())
+# Get entity attribute:
+print("sun.sun / elevation: ", client.get_state_attribute_as_numeric("sun.sun", "elevation"))
+print("sun.sun / next_setting: ", client.get_state_attribute_as_datetime("sun.sun", "next_setting"))
+
+
+#history_df = client.get_state_history(["sensor.gw2000c_outdoor_temperature"])
+
+history_df = client.get_state_history(["sensor.bus"])
+print(history_df.sort_values(by="last_updated").head(20))
+
+print(history_df.columns)

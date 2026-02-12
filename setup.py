@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="m-hass-api",
-    version="0.1.0",
+    version="0.3.0",
     author="Maksym Kozlenko",
     author_email="max@kozlenko.info",
     description="Provide access to Home Assistant API",

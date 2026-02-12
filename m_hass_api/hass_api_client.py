@@ -114,7 +114,7 @@ class HassApiClient:
                 f"Failed to fetch data from {url}: {str(e)}", status_code
             ) from e
 
-    def get_states(self):
+    def get_states(self) -> pd.DataFrame:
         if self.states_df is None:
             states = self.get_data(f"/api/states")
             states_df = pd.DataFrame(states)
@@ -122,28 +122,23 @@ class HassApiClient:
             self.states_df = states_df
         return self.states_df
 
-    def get_state_as_string(self, entity_id):
+    def get_state_as_string(self, entity_id) -> str:
         states_df = self.get_states()
         state_row = states_df[states_df["entity_id"] == entity_id]
         if not state_row.empty:
             return state_row.iloc[0]["state"]
         else:
             return None
-
-    def get_state_as_numeric(self, entity_id):
-        if self.states_df is None:
-            self.get_states()
-        state_row = self.states_df[self.states_df["entity_id"] == entity_id]
-        if not state_row.empty:
-            return pd.to_numeric(state_row.iloc[0]["state"], errors="coerce")
+        
+    def to_numeric(self, value: str) -> float:
+        if value:
+            return pd.to_numeric(value, errors="coerce")
         else:
             return None
-
-    def get_state_as_datetime(self, entity_id):
-        state_str = self.get_state_as_string(entity_id)
-
-        if state_str is not None:
-            datetime_value = pd.to_datetime(state_str, errors="coerce")
+        
+    def to_datetime(self, value: str) -> datetime:
+        if value is not None:
+            datetime_value = pd.to_datetime(value, errors="coerce")
             if self.tz is not None:
                 # Check if the datetime is timezone-naive
                 if datetime_value.tz is None:
@@ -155,6 +150,28 @@ class HassApiClient:
             return datetime_value
         else:
             return None
+
+    def get_state_as_datetime(self, entity_id) -> datetime:
+        return self.to_datetime(self.get_state_as_string(entity_id))
+    
+    def get_state_as_numeric(self, entity_id) -> float:
+        return self.to_numeric(self.get_state_as_string(entity_id))
+        
+    def get_state_attribute_as_string(self, entity_id, attribute_name) -> str:
+        if self.states_df is None:
+            self.get_states()
+        state_row = self.states_df[self.states_df['entity_id'] == entity_id]
+        if not state_row.empty:
+            attributes = state_row.iloc[0]['attributes']
+            if attribute_name in attributes:
+                return attributes[attribute_name]
+        return None
+    
+    def get_state_attribute_as_datetime(self, entity_id, attribute_name) -> datetime:
+        return self.to_datetime(self.get_state_attribute_as_string(entity_id, attribute_name))
+    
+    def get_state_attribute_as_numeric(self, entity_id, attribute_name) -> datetime:
+        return self.to_numeric(self.get_state_attribute_as_string(entity_id, attribute_name))
 
     def get_state_history(self, entity_ids, start_time=None, end_time=None):
         if start_time is None:
@@ -178,8 +195,9 @@ class HassApiClient:
         )
 
         dfs = []
-        for parts in response:
-            dfs.append(pd.DataFrame(parts))
+        for part in response:
+            print(part[1])
+            dfs.append(pd.DataFrame(part))
 
         history_df = pd.concat(dfs, ignore_index=True)
         history_df["last_updated"] = pd.to_datetime(
