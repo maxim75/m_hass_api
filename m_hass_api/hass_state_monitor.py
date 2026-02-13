@@ -2,10 +2,36 @@ import websocket
 import json
 import threading
 import time
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Callable, Dict, Optional, Union
+from zoneinfo import ZoneInfo
+
+@dataclass
+class StateChangeEvent:
+    """Data class representing a state change event."""
+    entity_id: str
+    subscription_id: int
+    data_type: str
+    new_state: Any
+    old_state: Any
+    new_state_raw: str
+    old_state_raw: str
+    new_attributes: Dict[str, Any]
+    old_attributes: Dict[str, Any]
+    last_changed: str
+    last_updated: str
+    for_duration: Optional[str] = None
 
 class HassStateMonitor:
-    def __init__(self, hostname, api_key, entities, callback):
+    def __init__(
+        self,
+        hostname: str,
+        api_key: str,
+        entities: Dict[str, str],
+        callback: Callable[[StateChangeEvent], None],
+        tz: Union[ZoneInfo, str, None] = None
+    ):
         self.hostname = hostname
         self.api_key = api_key
         self.entities = entities  # Dict: {"entity_id": "type"}
@@ -16,6 +42,11 @@ class HassStateMonitor:
         self.subscription_ids = {}  # Map subscription ID to entity_id
         self.should_reconnect = False
         self.ws_thread = None
+        # Convert string timezone to ZoneInfo object if provided
+        if isinstance(tz, str):
+            self.tz = ZoneInfo(tz)
+        else:
+            self.tz = tz
         
     def start(self):
         self.should_reconnect = True
@@ -87,7 +118,17 @@ class HassStateMonitor:
             if data_type == 'numeric':
                 return float(value)
             elif data_type == 'datetime':
-                return datetime.fromisoformat(value.replace('Z', '+00:00'))
+                datetime_value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                if self.tz is not None:
+                    # Check if the datetime is timezone-aware
+                    if datetime_value.tzinfo is not None:
+                        # Convert from existing timezone to the specified timezone
+                        datetime_value = datetime_value.astimezone(self.tz)
+                    else:
+                        # Localize timezone-naive datetime to the specified timezone
+                        datetime_value = datetime_value.replace(tzinfo=self.tz)
+                        
+                return datetime_value
             elif data_type in ['str', 'string']:
                 return str(value)
             elif data_type in ['bool', 'boolean']:
@@ -141,17 +182,20 @@ class HassStateMonitor:
             data_type
         )
         
-        self.callback({
-            'entity_id': entity_id,
-            'subscription_id': subscription_id,
-            'data_type': data_type,
-            'new_state': new_state,
-            'old_state': old_state,
-            'new_state_raw': to_state['state'] if to_state else None,
-            'old_state_raw': from_state['state'] if from_state else None,
-            'new_attributes': to_state['attributes'] if to_state else None,
-            'old_attributes': from_state['attributes'] if from_state else None,
-            'last_changed': to_state['last_changed'] if to_state else None,
-            'last_updated': to_state['last_updated'] if to_state else None,
-            'for_duration': trigger.get('for')
-        })
+        # Create StateChangeEvent instance
+        event = StateChangeEvent(
+            entity_id=entity_id,
+            subscription_id=subscription_id,
+            data_type=data_type,
+            new_state=new_state,
+            old_state=old_state,
+            new_state_raw=to_state['state'] if to_state else None,
+            old_state_raw=from_state['state'] if from_state else None,
+            new_attributes=to_state['attributes'] if to_state else None,
+            old_attributes=from_state['attributes'] if from_state else None,
+            last_changed=to_state['last_changed'] if to_state else None,
+            last_updated=to_state['last_updated'] if to_state else None,
+            for_duration=trigger.get('for')
+        )
+        
+        self.callback(event)

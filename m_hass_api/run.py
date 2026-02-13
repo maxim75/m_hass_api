@@ -42,20 +42,20 @@ print(history_df.columns)
 
 # Usage example:
 def on_state_change(state_change):
-    print(f"Entity {state_change['entity_id']} ({state_change['data_type']}) changed:")
-    print(f"  Old state: {state_change['old_state']} (type: {type(state_change['old_state']).__name__})")
-    print(f"  New state: {state_change['new_state']} (type: {type(state_change['new_state']).__name__})")
-    print(f"  Raw old: {state_change['old_state_raw']}")
-    print(f"  Raw new: {state_change['new_state_raw']}")
+    print(f"Entity {state_change.entity_id} ({state_change.data_type}) changed:")
+    print(f"  Old state: {state_change.old_state} (type: {type(state_change.old_state).__name__})")
+    print(f"  New state: {state_change.new_state} (type: {type(state_change.new_state).__name__})")
+    print(f"  Raw old: {state_change.old_state_raw}")
+    print(f"  Raw new: {state_change.new_state_raw}")
     
     # Example: Type-specific handling
-    if state_change['data_type'] == 'numeric':
-        if state_change['new_state'] is not None and state_change['old_state'] is not None:
-            change = state_change['new_state'] - state_change['old_state']
+    if state_change.data_type == 'numeric':
+        if state_change.new_state is not None and state_change.old_state is not None:
+            change = state_change.new_state - state_change.old_state
             print(f"  Numeric change: {'+' if change > 0 else ''}{change}")
-    elif state_change['data_type'] == 'datetime':
-        if state_change['new_state'] is not None and state_change['old_state'] is not None:
-            diff = state_change['new_state'] - state_change['old_state']
+    elif state_change.data_type == 'datetime':
+        if state_change.new_state is not None and state_change.old_state is not None:
+            diff = state_change.new_state - state_change.old_state
             print(f"  Time difference: {diff}")
 
 
@@ -66,7 +66,8 @@ monitor = HassStateMonitor(
         "sensor.rumpus_tv_gpo_last_seen": 'datetime',
         "input_text.nrf_message": "str"
     },
-    on_state_change
+    on_state_change,
+    tz=ZoneInfo("Australia/Sydney")
 )
 
 monitor.start()
