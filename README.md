@@ -440,6 +440,43 @@ flake8 m_hass_api/ tests/
 mypy m_hass_api/
 ```
 
+## CI/CD with GitHub Actions
+
+This project uses GitHub Actions for automated testing and deployment to PyPI.
+
+### Automated Workflow
+
+The `.github/workflows/ci.yml` workflow provides:
+
+- **Automated Testing**: Runs tests on multiple OS (Ubuntu, macOS, Windows) and Python versions (3.8-3.12)
+- **Code Quality**: Automatic linting (flake8) and type checking (mypy)
+- **Automated Building**: Builds Python packages on every push
+- **Automated Publishing**: Deploys to TestPyPI and PyPI based on triggers
+
+### Workflow Triggers
+
+| Event | Trigger | Action |
+|-------|---------|---------|
+| Push to `main` | ✓ | Run tests + build package |
+| Push to `develop` | ✓ | Run tests + build + publish to TestPyPI |
+| Pull Request | ✓ | Run tests + build |
+| GitHub Release | ✓ | Run tests + build + publish to PyPI + create release |
+
+### Quick Start
+
+1. **Set up PyPI account** and enable 2FA
+2. **Configure trusted publishing** in PyPI settings
+3. **Push to develop** to test:
+   ```bash
+   git push origin develop
+   ```
+4. **Create a release** to publish:
+   ```bash
+   gh release create v0.5.0 --generate-notes
+   ```
+
+For detailed setup instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Deployment
 
 ### Building the Package
