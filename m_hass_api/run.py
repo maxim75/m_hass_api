@@ -5,6 +5,14 @@ import os
 from datetime import datetime, timedelta, UTC
 from zoneinfo import ZoneInfo
 from time import sleep
+import logging
+
+# Configure logging to display messages
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 load_dotenv()
 
@@ -61,7 +69,7 @@ def on_state_change(state_change):
 
 
 monitor = HassStateMonitor(
-    HA_HOSTNAME.replace("http://", ""),
+    HA_HOSTNAME.replace("http://", "ws://"),
     HA_TOKEN,
     {
         "sensor.rumpus_tv_gpo_last_seen": 'datetime',

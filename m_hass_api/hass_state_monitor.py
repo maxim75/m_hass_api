@@ -1,3 +1,4 @@
+import logging
 import websocket
 import json
 import threading
@@ -42,6 +43,7 @@ class HassStateMonitor:
         self.subscription_ids = {}  # Map subscription ID to entity_id
         self.should_reconnect = False
         self.ws_thread = None
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Convert string timezone to ZoneInfo object if provided
         if isinstance(tz, str):
             self.tz = ZoneInfo(tz)
@@ -61,7 +63,7 @@ class HassStateMonitor:
         self.subscription_ids.clear()
             
     def _connect(self):
-        ws_url = f"ws://{self.hostname}/api/websocket"
+        ws_url = f"{self.hostname}/api/websocket"
         self.ws = websocket.WebSocketApp(
             ws_url,
             on_message=self._on_message,
@@ -72,7 +74,7 @@ class HassStateMonitor:
         self.ws.run_forever()
         
     def _on_open(self, ws):
-        print("Connected to Home Assistant")
+        self.logger.info("Connected to Home Assistant")
         
     def _on_message(self, ws, message):
         msg = json.loads(message)
@@ -83,13 +85,13 @@ class HassStateMonitor:
                 'access_token': self.api_key
             }))
         elif msg['type'] == 'auth_ok':
-            print("Authentication successful")
+            self.logger.info("Authentication successful")
             self._subscribe_to_entities(ws)
         elif msg['type'] == 'result':
             if msg['success']:
-                print(f"Subscription successful for ID {msg['id']}")
+                self.logger.info(f"Subscription successful for ID {msg['id']}")
             else:
-                print(f"Subscription failed for ID {msg['id']}: {msg.get('error')}")
+                self.logger.error(f"Subscription failed for ID {msg['id']}: {msg.get('error')}")
         elif msg['type'] == 'event':
             self._handle_state_change(msg)
             
@@ -107,7 +109,7 @@ class HassStateMonitor:
                 }
             }))
             
-            print(f"Subscribed to {entity_id} with ID {subscription_id}")
+            self.logger.info(f"Subscribed to {entity_id} with ID {subscription_id}")
             self.message_id += 1
     
     def _convert_value(self, value, data_type):
@@ -118,17 +120,7 @@ class HassStateMonitor:
             if data_type == 'numeric':
                 return float(value)
             elif data_type == 'datetime':
-                datetime_value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                if self.tz is not None:
-                    # Check if the datetime is timezone-aware
-                    if datetime_value.tzinfo is not None:
-                        # Convert from existing timezone to the specified timezone
-                        datetime_value = datetime_value.astimezone(self.tz)
-                    else:
-                        # Localize timezone-naive datetime to the specified timezone
-                        datetime_value = datetime_value.replace(tzinfo=self.tz)
-                        
-                return datetime_value
+                return self._convert_timestamp(value)
             elif data_type in ['str', 'string']:
                 return str(value)
             elif data_type in ['bool', 'boolean']:
@@ -167,13 +159,13 @@ class HassStateMonitor:
             return None
             
     def _on_error(self, ws, error):
-        print(f"WebSocket error: {error}")
+        self.logger.error(f"WebSocket error: {error}")
         
     def _on_close(self, ws, close_status_code, close_msg):
-        print("Disconnected from Home Assistant")
+        self.logger.info("Disconnected from Home Assistant")
         self.subscription_ids.clear()
         if self.should_reconnect:
-            print("Reconnecting in 5 seconds...")
+            self.logger.warning("Reconnecting in 5 seconds...")
             time.sleep(5)
             self._connect()
             
