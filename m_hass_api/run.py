@@ -47,6 +47,7 @@ def on_state_change(state_change):
     print(f"  New state: {state_change.new_state} (type: {type(state_change.new_state).__name__})")
     print(f"  Raw old: {state_change.old_state_raw}")
     print(f"  Raw new: {state_change.new_state_raw}")
+    print(f" last_updated: {state_change.last_updated}")
     
     # Example: Type-specific handling
     if state_change.data_type == 'numeric':

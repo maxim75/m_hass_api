@@ -19,8 +19,8 @@ class StateChangeEvent:
     old_state_raw: str
     new_attributes: Dict[str, Any]
     old_attributes: Dict[str, Any]
-    last_changed: str
-    last_updated: str
+    last_changed: Optional[datetime]
+    last_updated: Optional[datetime]
     for_duration: Optional[str] = None
 
 class HassStateMonitor:
@@ -147,6 +147,25 @@ class HassStateMonitor:
         except (ValueError, TypeError, AttributeError):
             return None
             
+    def _convert_timestamp(self, timestamp_str: str) -> Optional[datetime]:
+        """Convert a timestamp string to a datetime object with timezone."""
+        if not timestamp_str:
+            return None
+        
+        try:
+            datetime_value = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            if self.tz is not None:
+                # Check if the datetime is timezone-aware
+                if datetime_value.tzinfo is not None:
+                    # Convert from existing timezone to the specified timezone
+                    datetime_value = datetime_value.astimezone(self.tz)
+                else:
+                    # Localize timezone-naive datetime to the specified timezone
+                    datetime_value = datetime_value.replace(tzinfo=self.tz)
+            return datetime_value
+        except (ValueError, TypeError, AttributeError):
+            return None
+            
     def _on_error(self, ws, error):
         print(f"WebSocket error: {error}")
         
@@ -193,8 +212,8 @@ class HassStateMonitor:
             old_state_raw=from_state['state'] if from_state else None,
             new_attributes=to_state['attributes'] if to_state else None,
             old_attributes=from_state['attributes'] if from_state else None,
-            last_changed=to_state['last_changed'] if to_state else None,
-            last_updated=to_state['last_updated'] if to_state else None,
+            last_changed=self._convert_timestamp(to_state['last_changed'] if to_state else None),
+            last_updated=self._convert_timestamp(to_state['last_updated'] if to_state else None),
             for_duration=trigger.get('for')
         )
         
