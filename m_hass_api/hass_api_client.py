@@ -173,7 +173,7 @@ class HassApiClient:
     def get_state_attribute_as_numeric(self, entity_id, attribute_name) -> datetime:
         return self.to_numeric(self.get_state_attribute_as_string(entity_id, attribute_name))
 
-    def get_state_history(self, entity_ids, start_time=None, end_time=None):
+    def get_state_history(self, entity_ids, start_time=None, end_time=None, get_attributes=False):
         if start_time is None:
             start_time = datetime.now(timezone.utc) - timedelta(days=1)
         start_time_str = start_time.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -213,6 +213,24 @@ class HassApiClient:
             history_df["last_changed"] = history_df["last_changed"].dt.tz_convert(
                 self.tz
             )
+        
+        if get_attributes:
+            # Explode attributes into separate rows
+            attributes_df = history_df[["entity_id", "last_updated", "last_changed", "state"]].copy()
+            attributes_list = []
+            for idx, row in history_df.iterrows():
+                if isinstance(row["attributes"], dict):
+                    for attr_name, attr_value in row["attributes"].items():
+                        attributes_list.append({
+                            "entity_id": row["entity_id"],
+                            "last_updated": row["last_updated"],
+                            "last_changed": row["last_changed"],
+                            "state": row["state"],
+                            "attribute_name": attr_name,
+                            "attribute_value": attr_value
+                        })
+            history_df = pd.DataFrame(attributes_list)
+        
         return history_df
 
     def close(self) -> None:
