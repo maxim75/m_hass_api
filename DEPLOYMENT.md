@@ -388,6 +388,20 @@ git commit -m "chore: update dependencies"
 
 ## Troubleshooting
 
+### Issue: "HttpError: Resource not accessible by integration" when creating GitHub release
+
+**Solution**:
+1. This error occurs when the workflow lacks `contents: write` permission
+2. The workflow file should include:
+   ```yaml
+   publish-pypi:
+     permissions:
+       id-token: write  # For PyPI publishing
+       contents: write  # For creating GitHub releases
+   ```
+3. Ensure permissions are set at the job level
+4. This is a common issue with the `softprops/action-gh-release@v1` action
+
 ### Issue: "Permission denied" when publishing
 
 **Solution**:
