@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="m-hass-api",
-    version="0.4.0",
+    version="0.5.0",
     author="Maksym Kozlenko",
     author_email="max@kozlenko.info",
     description="Python package for Home Assistant API with real-time WebSocket state monitoring",
